@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgendaPro — Serviços</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    .btn-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .btn-hamburger:hover {
+      background: rgba(154, 205, 50, 0.1);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 99;
+    }
+    .sidebar-overlay.open {
+      display: block;
+    }
+    @media (max-width: 768px) {
+      .btn-hamburger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- OVERLAY SIDEBAR -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>AgendaPro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu</div>
+      <a href="dashboard.html"    class="nav-item"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+      <a href="agendamentos.html" class="nav-item"><i class="fa-solid fa-calendar-days"></i> Agendamentos</a>
+      <a href="clientes.html"     class="nav-item"><i class="fa-solid fa-users"></i> Clientes</a>
+      <a href="servicos.html"     class="nav-item active"><i class="fa-solid fa-briefcase"></i> Serviços</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Sair
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <!-- BOTÃO HAMBÚRGUER -->
+      <button class="btn-hamburger" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <div class="topbar-title"><span>Serviços</span></div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" onclick="abrirModal()">
+          <i class="fa-solid fa-plus"></i> Novo Serviço
+        </button>
+        <div class="topbar-avatar">A</div>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- MÉTRICAS -->
+      <div class="metrics-grid" style="margin-bottom:24px">
+        <div class="metric-card">
+          <div class="metric-icon green"><i class="fa-solid fa-briefcase"></i></div>
+          <div class="metric-info">
+            <h3 id="totalServicos">0</h3>
+            <p>Total de Serviços</p>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon blue"><i class="fa-solid fa-arrow-trend-up"></i></div>
+          <div class="metric-info">
+            <h3 id="servicoMaisUsado">—</h3>
+            <p>Mais Agendado</p>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon orange"><i class="fa-solid fa-money-bill-wave"></i></div>
+          <div class="metric-info">
+            <h3 id="precoMedio">R$ 0</h3>
+            <p>Preço Médio</p>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon red"><i class="fa-solid fa-clock"></i></div>
+          <div class="metric-info">
+            <h3 id="duracaoMedia">0 min</h3>
+            <p>Duração Média</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- HEADER + BUSCA -->
+      <div class="card-header" style="margin-bottom:16px">
+        <div class="card-title" style="display:flex;align-items:center;gap:10px">
+          <i class="fa-solid fa-briefcase" style="color:var(--primary)"></i> Lista de Serviços
+        </div>
+        <div class="search-bar" style="margin:0;width:280px">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="filtroBusca" placeholder="Buscar serviço..." oninput="renderCards()"/>
+        </div>
+      </div>
+
+      <!-- GRID DE CARDS -->
+      <div id="servicosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SERVIÇO -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitulo"><i class="fa-solid fa-plus"></i> Novo Serviço</h2>
+      <button class="modal-close" onclick="fecharModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <input type="hidden" id="srvId"/>
+
+    <div class="form-group">
+      <label><i class="fa-solid fa-briefcase"></i> Nome do Serviço *</label>
+      <input type="text" id="srvNome" placeholder="Ex: Consulta, Corte de Cabelo..."/>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="fa-solid fa-clock"></i> Duração (minutos) *</label>
+        <input type="number" id="srvDuracao" placeholder="Ex: 60" min="5" max="480"/>
+      </div>
+      <div class="form-group">
+        <label><i class="fa-solid fa-money-bill"></i> Preço (R$) *</label>
+        <input type="number" id="srvPreco" placeholder="Ex: 150.00" min="0" step="0.01"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label><i class="fa-solid fa-align-left"></i> Descrição</label>
+      <textarea id="srvDesc" rows="3" placeholder="Descrição do serviço..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarServico()">
+        <i class="fa-solid fa-floppy-disk"></i> Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXCLUIR -->
+<div class="modal-overlay" id="modalExcluir">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> Confirmar Exclusão</h2>
+      <button class="modal-close" onclick="fecharExcluir()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <p style="color:var(--text-muted);margin-bottom:24px">Tem certeza que deseja excluir este serviço?</p>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharExcluir()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarExclusao()">
+        <i class="fa-solid fa-trash"></i> Excluir
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/app.js"></script>
+<script>
+  let idParaExcluir = null;
+
+  const icones = [
+    'fa-stethoscope', 'fa-scissors',    'fa-dumbbell',
+    'fa-tooth',       'fa-heart-pulse',  'fa-spa',
+    'fa-hand-holding-heart', 'fa-briefcase-medical'
+  ];
+
+  // ===== TOGGLE SIDEBAR MOBILE =====
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+  }
+
+  // Fecha sidebar ao clicar em qualquer link do menu (mobile)
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+    });
+  });
+
+  // ===== MÉTRICAS =====
+  function atualizarMetricas() {
+    const servicos = getServicos();
+    const ags      = getAgendamentos();
+
+    if (!servicos.length) return;
+
+    const contagem = {};
+    ags.forEach(a => { contagem[a.servico] = (contagem[a.servico] || 0) + 1; });
+    const maisUsado = Object.entries(contagem).sort((a, b) => b[1] - a[1])[0];
+
+    const precoMedio   = servicos.reduce((s, sv) => s + sv.preco, 0)    / servicos.length;
+    const duracaoMedia = servicos.reduce((s, sv) => s + sv.duracao, 0)  / servicos.length;
+
+    document.getElementById('totalServicos').textContent    = servicos.length;
+    document.getElementById('servicoMaisUsado').textContent = maisUsado ? maisUsado[0].split(' ')[0] : '—';
+    document.getElementById('precoMedio').textContent       = `R$ ${precoMedio.toFixed(2)}`;
+    document.getElementById('duracaoMedia').textContent     = `${Math.round(duracaoMedia)} min`;
+  }
+
+  // ===== RENDER CARDS =====
+  function renderCards() {
+    const servicos = getServicos();
+    const ags      = getAgendamentos();
+    const busca    = document.getElementById('filtroBusca').value.toLowerCase();
+
+    const filtrados = servicos.filter(s => s.nome.toLowerCase().includes(busca));
+    const grid      = document.getElementById('servicosGrid');
+
+    if (!filtrados.length) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1">
+          <i class="fa-solid fa-briefcase"></i>
+          <p>Nenhum serviço encontrado</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = filtrados.map((s, i) => {
+      const qtdUsos = ags.filter(a => a.servico === s.nome).length;
+      const icone   = icones[i % icones.length];
+      return `
+        <div class="card" style="border-top:3px solid var(--primary);transition:transform 0.2s"
+          onmouseover="this.style.transform='translateY(-4px)'"
+          onmouseout="this.style.transform=''">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+            <div style="width:48px;height:48px;border-radius:12px;background:rgba(154,205,50,0.15);
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:20px;color:var(--primary)">
+              <i class="fa-solid ${icone}"></i>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="editarServico(${s.id})" title="Editar">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="pedirExclusao(${s.id})" title="Excluir">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <h3 style="font-size:17px;margin-bottom:8px">${s.nome}</h3>
+          ${s.descricao
+            ? `<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">${s.descricao}</p>`
+            : ''}
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      padding-top:12px;border-top:1px solid var(--border)">
+            <span style="font-size:22px;font-weight:700;color:var(--primary)">
+              R$ ${s.preco.toFixed(2)}
+            </span>
+            <div style="text-align:right">
+              <span style="font-size:12px;color:var(--text-muted);display:block">
+                <i class="fa-regular fa-clock"></i> ${s.duracao} min
+              </span>
+              <span style="font-size:12px;color:var(--text-muted)">
+                <i class="fa-solid fa-calendar-check"></i> ${qtdUsos} uso(s)
+              </span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    atualizarMetricas();
+  }
+
+  // ===== MODAL ABRIR/FECHAR =====
+  function abrirModal() {
+    document.getElementById('srvId').value      = '';
+    document.getElementById('srvNome').value    = '';
+    document.getElementById('srvDuracao').value = '';
+    document.getElementById('srvPreco').value   = '';
+    document.getElementById('srvDesc').value    = '';
+    document.getElementById('modalTitulo').innerHTML = '<i class="fa-solid fa-plus"></i> Novo Serviço';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function editarServico(id) {
+    const s = getServicos().find(s => s.id === id);
+    if (!s) return;
+    document.getElementById('srvId').value      = s.id;
+    document.getElementById('srvNome').value    = s.nome;
+    document.getElementById('srvDuracao').value = s.duracao;
+    document.getElementById('srvPreco').value   = s.preco;
+    document.getElementById('srvDesc').value    = s.descricao || '';
+    document.getElementById('modalTitulo').innerHTML = '<i class="fa-solid fa-pen"></i> Editar Serviço';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function fecharModal()   { document.getElementById('modalOverlay').classList.remove('open'); }
+  function fecharExcluir() { document.getElementById('modalExcluir').classList.remove('open'); idParaExcluir = null; }
+
+  // ===== SALVAR =====
+  function salvarServico() {
+    const id      = document.getElementById('srvId').value;
+    const nome    = document.getElementById('srvNome').value.trim();
+    const duracao = parseInt(document.getElementById('srvDuracao').value);
+    const preco   = parseFloat(document.getElementById('srvPreco').value);
+    const desc    = document.getElementById('srvDesc').value.trim();
+
+    if (!nome || !duracao || isNaN(preco)) {
+      showToast('Preencha todos os campos obrigatórios!', 'error');
+      return;
+    }
+
+    const servicos = getServicos();
+    if (id) {
+      const idx = servicos.findIndex(s => s.id === parseInt(id));
+      servicos[idx] = { ...servicos[idx], nome, duracao, preco, descricao: desc };
+      showToast('Serviço atualizado!');
+    } else {
+      const novoId = servicos.length ? Math.max(...servicos.map(s => s.id)) + 1 : 1;
+      servicos.push({ id: novoId, nome, duracao, preco, descricao: desc });
+      showToast('Serviço criado com sucesso!');
+    }
+
+    salvarServicos(servicos);
+    fecharModal();
+    renderCards();
+  }
+
+  // ===== EXCLUSÃO =====
+  function pedirExclusao(id) {
+    idParaExcluir = id;
+    document.getElementById('modalExcluir').classList.add('open');
+  }
+
+  function confirmarExclusao() {
+    salvarServicos(getServicos().filter(s => s.id !== idParaExcluir));
+    fecharExcluir();
+    renderCards();
+    showToast('Serviço removido!', 'warning');
+  }
+
+  // ===== LOGOUT =====
+  function logout() { window.location.href = '../index.html'; }
+
+  // ===== INIT =====
+  renderCards();
+</script>
+</body>
+</html>
+

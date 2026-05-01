@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgendaPro — Dashboard</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    .btn-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .btn-hamburger:hover {
+      background: rgba(154, 205, 50, 0.1);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 99;
+    }
+    .sidebar-overlay.open {
+      display: block;
+    }
+    @media (max-width: 768px) {
+      .btn-hamburger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- OVERLAY SIDEBAR -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>AgendaPro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu</div>
+      <a href="dashboard.html"    class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+      <a href="agendamentos.html" class="nav-item"><i class="fa-solid fa-calendar-days"></i> Agendamentos</a>
+      <a href="clientes.html"     class="nav-item"><i class="fa-solid fa-users"></i> Clientes</a>
+      <a href="servicos.html"     class="nav-item"><i class="fa-solid fa-briefcase"></i> Serviços</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Sair
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <!-- BOTÃO HAMBÚRGUER -->
+      <button class="btn-hamburger" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <div class="topbar-title">Bem-vindo ao <span>AgendaPro</span></div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbarDate"></span>
+        <div class="topbar-avatar">A</div>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- MÉTRICAS -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon green"><i class="fa-solid fa-calendar-check"></i></div>
+          <div class="metric-info">
+            <h3 id="metricHoje">0</h3>
+            <p>Agendamentos Hoje</p>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon blue"><i class="fa-solid fa-users"></i></div>
+          <div class="metric-info">
+            <h3 id="metricClientes">0</h3>
+            <p>Total de Clientes</p>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon orange"><i class="fa-solid fa-clock"></i></div>
+          <div class="metric-info">
+            <h3 id="metricPendentes">0</h3>
+            <p>Pendentes</p>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon red"><i class="fa-solid fa-calendar-week"></i></div>
+          <div class="metric-info">
+            <h3 id="metricSemana">0</h3>
+            <p>Esta Semana</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENDA + CALENDÁRIO -->
+      <div class="two-col">
+        <!-- AGENDA DO DIA -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-list-check"></i> Agenda de Hoje</div>
+          </div>
+          <div class="agenda-list" id="agendaHoje">
+            <div class="empty-state">
+              <i class="fa-regular fa-calendar-xmark"></i>
+              <p>Nenhum agendamento para hoje</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- CALENDÁRIO MINI -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-calendar"></i> Calendário</div>
+          </div>
+          <div class="mini-calendar" id="miniCalendar"></div>
+        </div>
+      </div>
+
+      <!-- PRÓXIMOS AGENDAMENTOS -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-forward"></i> Próximos Agendamentos</div>
+          <a href="agendamentos.html" class="btn btn-outline btn-sm">Ver todos</a>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Serviço</th>
+                <th>Data</th>
+                <th>Horário</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="proximosBody">
+              <tr>
+                <td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">
+                  Nenhum agendamento futuro
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/app.js"></script>
+<script>
+
+  // ===== TOGGLE SIDEBAR MOBILE =====
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+  }
+
+  // Fecha sidebar ao clicar em qualquer link do menu (mobile)
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+    });
+  });
+
+  // ===== DATA NA TOPBAR =====
+  const opts = { weekday:'long', day:'numeric', month:'long', year:'numeric' };
+  document.getElementById('topbarDate').textContent =
+    new Date().toLocaleDateString('pt-BR', opts);
+
+  // ===== MÉTRICAS =====
+  function atualizarMetricas() {
+    const ags  = getAgendamentos();
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const inicioSemana = new Date();
+    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
+    const inicioSemanaStr = inicioSemana.toISOString().split('T')[0];
+
+    const agHoje   = ags.filter(a => a.data === hoje);
+    const agPend   = ags.filter(a => a.status === 'pendente');
+    const agSemana = ags.filter(a => a.data >= inicioSemanaStr);
+
+    // Clientes únicos pelos agendamentos + cadastrados
+    const clientesUnicos = new Set([
+      ...ags.map(a => a.cliente.toLowerCase().trim()),
+      ...getClientes().map(c => c.nome.toLowerCase().trim())
+    ]);
+
+    document.getElementById('metricHoje').textContent      = agHoje.length;
+    document.getElementById('metricClientes').textContent  = clientesUnicos.size;
+    document.getElementById('metricPendentes').textContent = agPend.length;
+    document.getElementById('metricSemana').textContent    = agSemana.length;
+  }
+
+  // ===== AGENDA DO DIA =====
+  function renderAgendaHoje() {
+    const ags  = getAgendamentos();
+    const hoje = new Date().toISOString().split('T')[0];
+    const list = ags.filter(a => a.data === hoje)
+                    .sort((a,b) => a.hora.localeCompare(b.hora));
+    const el   = document.getElementById('agendaHoje');
+
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state">
+        <i class="fa-regular fa-calendar-xmark"></i>
+        <p>Nenhum agendamento para hoje</p>
+      </div>`;
+      return;
+    }
+
+    const badges = {
+      pendente:   '<span class="badge badge-warning">Pendente</span>',
+      confirmado: '<span class="badge badge-success">Confirmado</span>',
+      cancelado:  '<span class="badge badge-danger">Cancelado</span>',
+      concluido:  '<span class="badge badge-primary">Concluído</span>',
+    };
+
+    el.innerHTML = list.map(a => `
+      <div class="agenda-item ${a.status}">
+        <div class="agenda-time">${a.hora}</div>
+        <div class="agenda-info">
+          <strong>${a.cliente}</strong>
+          <span>${a.servico}</span>
+        </div>
+        ${badges[a.status] || ''}
+      </div>
+    `).join('');
+  }
+
+  // ===== PRÓXIMOS AGENDAMENTOS =====
+  function renderProximos() {
+    const ags  = getAgendamentos();
+    const hoje = new Date().toISOString().split('T')[0];
+    const list = ags.filter(a => a.data >= hoje && a.status !== 'cancelado')
+                    .sort((a,b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora))
+                    .slice(0, 5);
+    const tbody = document.getElementById('proximosBody');
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr>
+        <td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">
+          Nenhum agendamento futuro
+        </td>
+      </tr>`;
+      return;
+    }
+
+    const badges = {
+      pendente:   '<span class="badge badge-warning">Pendente</span>',
+      confirmado: '<span class="badge badge-success">Confirmado</span>',
+      concluido:  '<span class="badge badge-primary">Concluído</span>',
+    };
+
+    tbody.innerHTML = list.map(a => `
+      <tr>
+        <td>${a.cliente}</td>
+        <td>${a.servico}</td>
+        <td>${formatarData(a.data)}</td>
+        <td>${a.hora}</td>
+        <td>${badges[a.status] || a.status}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ===== CALENDÁRIO MINI =====
+  function renderCalendario(ano, mes) {
+    const ags   = getAgendamentos();
+    const hoje  = new Date();
+    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const dias  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+    const primeiroDia = new Date(ano, mes, 1).getDay();
+    const totalDias   = new Date(ano, mes + 1, 0).getDate();
+
+    const datasComEvento = new Set(
+      ags.filter(a => {
+        const d = new Date(a.data + 'T00:00:00');
+        return d.getFullYear() === ano && d.getMonth() === mes;
+      }).map(a => parseInt(a.data.split('-')[2]))
+    );
+
+    const anoAnterior = mes === 0 ? ano - 1 : ano;
+    const mesAnterior = mes === 0 ? 11 : mes - 1;
+    const anoProximo  = mes === 11 ? ano + 1 : ano;
+    const mesProximo  = mes === 11 ? 0 : mes + 1;
+
+    let html = `
+      <div class="cal-header">
+        <button class="cal-nav" onclick="renderCalendario(${anoAnterior},${mesAnterior})">&#8249;</button>
+        <h3>${meses[mes]} ${ano}</h3>
+        <button class="cal-nav" onclick="renderCalendario(${anoProximo},${mesProximo})">&#8250;</button>
+      </div>
+      <div class="cal-grid">
+        ${dias.map(d => `<div class="cal-day-label">${d}</div>`).join('')}
+        ${Array(primeiroDia).fill('<div class="cal-day empty"></div>').join('')}
+        ${Array.from({length: totalDias}, (_, i) => {
+          const dia    = i + 1;
+          const isHoje = ano === hoje.getFullYear() && mes === hoje.getMonth() && dia === hoje.getDate();
+          const hasEv  = datasComEvento.has(dia);
+          return `<div class="cal-day ${isHoje ? 'today' : ''} ${hasEv ? 'has-event' : ''}">${dia}</div>`;
+        }).join('')}
+      </div>`;
+
+    document.getElementById('miniCalendar').innerHTML = html;
+  }
+
+  // ===== UTILITÁRIOS =====
+  function formatarData(d) {
+    const [y, m, dia] = d.split('-');
+    return `${dia}/${m}/${y}`;
+  }
+
+  function logout() {
+    window.location.href = '../index.html';
+  }
+
+  // ===== INIT =====
+  atualizarMetricas();
+  renderAgendaHoje();
+  renderProximos();
+  const n = new Date();
+  renderCalendario(n.getFullYear(), n.getMonth());
+
+</script>
+</body>
+</html>
+

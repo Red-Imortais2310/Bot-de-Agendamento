@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgendaPro — Agendamentos</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    .btn-hamburger { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: background 0.2s; }
+    .btn-hamburger:hover { background: rgba(154, 205, 50, 0.1); }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+    .sidebar-overlay.open { display: block; }
+    @media (max-width: 768px) { .btn-hamburger { display: flex; align-items: center; justify-content: center; } }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- OVERLAY SIDEBAR -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>AgendaPro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu</div>
+      <a href="dashboard.html"    class="nav-item"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+      <a href="agendamentos.html" class="nav-item active"><i class="fa-solid fa-calendar-days"></i> Agendamentos</a>
+      <a href="clientes.html"     class="nav-item"><i class="fa-solid fa-users"></i> Clientes</a>
+      <a href="servicos.html"     class="nav-item"><i class="fa-solid fa-briefcase"></i> Serviços</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Sair
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <button class="btn-hamburger" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-title"><span>Agendamentos</span></div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" onclick="abrirModal()">
+          <i class="fa-solid fa-plus"></i> Novo Agendamento
+        </button>
+        <div class="topbar-avatar">A</div>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- FILTROS -->
+      <div class="card" style="margin-bottom:24px">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="margin:0;flex:1;min-width:160px">
+            <label>Buscar cliente</label>
+            <div class="search-bar" style="margin:0">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="filtroBusca" placeholder="Nome do cliente..." oninput="renderTabela()"/>
+            </div>
+          </div>
+          <div class="form-group" style="margin:0;min-width:140px">
+            <label>Status</label>
+            <select id="filtroStatus" onchange="renderTabela()" style="padding:12px 14px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;width:100%">
+              <option value="">Todos</option>
+              <option value="pendente">Pendente</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="concluido">Concluído</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;min-width:160px">
+            <label>Data</label>
+            <input type="date" id="filtroData" onchange="renderTabela()" style="padding:12px 14px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;width:100%"/>
+          </div>
+          <button class="btn btn-outline" onclick="limparFiltros()">
+            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar
+          </button>
+        </div>
+      </div>
+
+      <!-- TABELA -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-calendar-days"></i> Lista de Agendamentos</div>
+          <span id="totalLabel" style="font-size:13px;color:var(--text-muted)"></span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Cliente</th>
+                <th>Serviço</th>
+                <th>Data</th>
+                <th>Horário</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="agendamentosBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO/EDITAR AGENDAMENTO -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitulo"><i class="fa-solid fa-calendar-plus"></i> Novo Agendamento</h2>
+      <button class="modal-close" onclick="fecharModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <input type="hidden" id="agId"/>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="fa-solid fa-user"></i> Cliente *</label>
+        <input type="text" id="agCliente" placeholder="Digite o nome do cliente..." required/>
+      </div>
+      <div class="form-group">
+        <label><i class="fa-solid fa-briefcase"></i> Serviço *</label>
+        <select id="agServico" required>
+          <option value="">Selecione...</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="fa-solid fa-calendar"></i> Data *</label>
+        <input type="date" id="agData" required/>
+      </div>
+      <div class="form-group">
+        <label><i class="fa-solid fa-clock"></i> Horário *</label>
+        <input type="time" id="agHora" required/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label><i class="fa-solid fa-flag"></i> Status</label>
+      <select id="agStatus">
+        <option value="pendente">Pendente</option>
+        <option value="confirmado">Confirmado</option>
+        <option value="concluido">Concluído</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label><i class="fa-solid fa-note-sticky"></i> Observações</label>
+      <textarea id="agObs" rows="3" placeholder="Observações opcionais..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAgendamento()">
+        <i class="fa-solid fa-floppy-disk"></i> Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUSÃO -->
+<div class="modal-overlay" id="modalExcluir">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> Confirmar Exclusão</h2>
+      <button class="modal-close" onclick="fecharExcluir()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <p style="color:var(--text-muted);margin-bottom:24px">Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.</p>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharExcluir()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarExclusao()">
+        <i class="fa-solid fa-trash"></i> Excluir
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/app.js"></script>
+<script>
+  // === CONFIGURAÇÃO DA API (COLOQUE A URL DO SEU INFINITYFREE AQUI DEPOIS) ===
+  const API_AGENDA = 'http://localhost/Bot%20de%20Agendamento/php';
+
+  let idParaExcluir = null;
+  let agendamentosCache = []; // Guarda os agendamentos baixados do banco
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+  }
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+    });
+  });
+
+  const badges = {
+    pendente:   '<span class="badge badge-warning">Pendente</span>',
+    confirmado: '<span class="badge badge-success">Confirmado</span>',
+    cancelado:  '<span class="badge badge-danger">Cancelado</span>',
+    concluido:  '<span class="badge badge-primary">Concluído</span>',
+  };
+
+  function formatarData(d) {
+    if (!d) return '';
+    const partes = d.split('-');
+    if(partes.length < 3) return d;
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+  }
+
+  // === BUSCAR AGENDAMENTOS DO BANCO (PHP) ===
+  async function carregarAgendamentosDoBanco() {
+    try {
+      const resposta = await fetch(`${API_AGENDA}/listar_agendamentos.php`);
+      const dados = await resposta.json();
+      agendamentosCache = dados;
+      return dados;
+    } catch (erro) {
+      console.error('Erro ao buscar agendamentos:', erro);
+      showToast('Erro de conexão com o banco de dados.', 'error');
+      return [];
+    }
+  }
+
+  // === RENDERIZAR A TABELA ===
+  async function renderTabela() {
+    const ags = await carregarAgendamentosDoBanco();
+    const busca  = document.getElementById('filtroBusca').value.toLowerCase();
+    const status = document.getElementById('filtroStatus').value;
+    const data   = document.getElementById('filtroData').value;
+
+    const filtrados = ags.filter(a => {
+      return (!busca  || a.cliente.toLowerCase().includes(busca))
+          && (!status || a.status === status)
+          && (!data   || a.data === data);
+    }).sort((a,b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora));
+
+    document.getElementById('totalLabel').textContent = `${filtrados.length} registro(s)`;
+
+    const tbody = document.getElementById('agendamentosBody');
+    if (!filtrados.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">
+        <i class="fa-regular fa-calendar-xmark" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.4"></i>
+        Nenhum agendamento encontrado
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtrados.map((a, i) => `
+      <tr>
+        <td style="color:var(--text-muted)">${i+1}</td>
+        <td><strong>${a.cliente}</strong></td>
+        <td>${a.servico}</td>
+        <td>${formatarData(a.data)}</td>
+        <td><i class="fa-regular fa-clock" style="color:var(--primary)"></i> ${a.hora.substring(0,5)}</td>
+        <td>${badges[a.status] || a.status}</td>
+        <td>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="editarAgendamento(${a.id})" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="pedirExclusao(${a.id})" title="Excluir">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function popularSelects() {
+    const servicos = getServicos();
+    document.getElementById('agServico').innerHTML =
+      '<option value="">Selecione...</option>' +
+      servicos.map(s => `<option value="${s.nome}">${s.nome} — R$ ${s.preco.toFixed(2)}</option>`).join('');
+  }
+
+  function abrirModal() {
+    popularSelects();
+    document.getElementById('agId').value      = '';
+    document.getElementById('agCliente').value = '';
+    document.getElementById('agServico').value = '';
+    document.getElementById('agData').value    = new Date().toISOString().split('T')[0];
+    document.getElementById('agHora').value    = '';
+    document.getElementById('agStatus').value  = 'pendente';
+    document.getElementById('agObs').value     = '';
+    document.getElementById('modalTitulo').innerHTML = '<i class="fa-solid fa-calendar-plus"></i> Novo Agendamento';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function editarAgendamento(id) {
+    popularSelects();
+    const ag = agendamentosCache.find(a => parseInt(a.id) === parseInt(id));
+    if (!ag) return;
+    document.getElementById('agId').value      = ag.id;
+    document.getElementById('agCliente').value = ag.cliente;
+    document.getElementById('agServico').value = ag.servico;
+    document.getElementById('agData').value    = ag.data;
+    document.getElementById('agHora').value    = ag.hora.substring(0,5);
+    document.getElementById('agStatus').value  = ag.status;
+    document.getElementById('agObs').value     = ag.obs || '';
+    document.getElementById('modalTitulo').innerHTML = '<i class="fa-solid fa-pen"></i> Editar Agendamento';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function fecharModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  // === SALVAR AGENDAMENTO NO BANCO ===
+  async function salvarAgendamento() {
+    const id      = document.getElementById('agId').value;
+    const cliente = document.getElementById('agCliente').value.trim();
+    const servico = document.getElementById('agServico').value;
+    const data    = document.getElementById('agData').value;
+    const hora    = document.getElementById('agHora').value;
+    const status  = document.getElementById('agStatus').value;
+    const obs     = document.getElementById('agObs').value;
+
+    if (!cliente || !servico || !data || !hora) {
+      showToast('Preencha todos os campos obrigatórios!', 'error');
+      return;
+    }
+
+    const payload = { id, cliente, servico, data, hora, status, obs };
+
+    try {
+      const resposta = await fetch(`${API_AGENDA}/salvar_agendamento.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const resultado = await resposta.json();
+
+      if (resultado.sucesso) {
+        showToast(id ? 'Agendamento atualizado!' : 'Agendamento criado com sucesso!');
+        fecharModal();
+        renderTabela();
+      } else {
+        showToast(resultado.erro || 'Erro ao salvar.', 'error');
+      }
+    } catch (erro) {
+      console.error(erro);
+      showToast('Erro de conexão ao salvar.', 'error');
+    }
+  }
+
+  function pedirExclusao(id) {
+    idParaExcluir = id;
+    document.getElementById('modalExcluir').classList.add('open');
+  }
+
+  function fecharExcluir() {
+    idParaExcluir = null;
+    document.getElementById('modalExcluir').classList.remove('open');
+  }
+
+  // === EXCLUIR AGENDAMENTO DO BANCO ===
+  async function confirmarExclusao() {
+    if(!idParaExcluir) return;
+    
+    try {
+      const resposta = await fetch(`${API_AGENDA}/excluir_agendamento.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: idParaExcluir })
+      });
+      
+      const resultado = await resposta.json();
+      
+      if (resultado.sucesso) {
+        showToast('Agendamento excluído!', 'warning');
+        fecharExcluir();
+        renderTabela();
+      } else {
+        showToast(resultado.erro || 'Erro ao excluir.', 'error');
+      }
+    } catch (erro) {
+      console.error(erro);
+      showToast('Erro de conexão ao excluir.', 'error');
+    }
+  }
+
+  function limparFiltros() {
+    document.getElementById('filtroBusca').value  = '';
+    document.getElementById('filtroStatus').value = '';
+    document.getElementById('filtroData').value   = '';
+    renderTabela();
+  }
+
+  function logout() { window.location.href = '../index.html'; }
+
+  // Inicializa a página carregando do banco
+  renderTabela();
+</script>
+</body>
+</html>
+
+

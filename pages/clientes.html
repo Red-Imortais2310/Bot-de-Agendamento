@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgendaPro — Clientes</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .btn-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn-hamburger:hover {
+      background: rgba(154, 205, 50, 0.1);
+    }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+    }
+
+    .sidebar-overlay.open {
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      .btn-hamburger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-layout">
+
+    <!-- OVERLAY SIDEBAR -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <i class="fa-solid fa-calendar-check"></i>
+        <span>AgendaPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-label">Menu</div>
+        <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+        <a href="agendamentos.html" class="nav-item"><i class="fa-solid fa-calendar-days"></i> Agendamentos</a>
+        <a href="clientes.html" class="nav-item active"><i class="fa-solid fa-users"></i> Clientes</a>
+        <a href="servicos.html" class="nav-item"><i class="fa-solid fa-briefcase"></i> Serviços</a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="logout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Sair
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-content">
+      <header class="topbar">
+        <!-- BOTÃO HAMBÚRGUER -->
+        <button class="btn-hamburger" onclick="toggleSidebar()">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <div class="topbar-title"><span>Clientes</span></div>
+        <div class="topbar-right">
+          <button class="btn btn-primary" onclick="abrirModal()">
+            <i class="fa-solid fa-user-plus"></i> Novo Cliente
+          </button>
+          <div class="topbar-avatar">A</div>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- CARDS TOPO -->
+        <div class="metrics-grid" style="margin-bottom:24px">
+          <div class="metric-card">
+            <div class="metric-icon green"><i class="fa-solid fa-users"></i></div>
+            <div class="metric-info">
+              <h3 id="totalClientes">0</h3>
+              <p>Total de Clientes</p>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon blue"><i class="fa-solid fa-calendar-check"></i></div>
+            <div class="metric-info">
+              <h3 id="clientesAtivos">0</h3>
+              <p>Com Agendamento</p>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon orange"><i class="fa-solid fa-user-clock"></i></div>
+            <div class="metric-info">
+              <h3 id="clientesMes">0</h3>
+              <p>Novos este Mês</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUSCA + TABELA -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-users"></i> Lista de Clientes</div>
+            <span id="totalLabel" style="font-size:13px;color:var(--text-muted)"></span>
+          </div>
+
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="filtroBusca" placeholder="Buscar por nome, telefone ou e-mail..."
+              oninput="renderTabela()" />
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nome</th>
+                  <th>Telefone</th>
+                  <th>E-mail</th>
+                  <th>Agendamentos</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="clientesBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CLIENTE -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitulo"><i class="fa-solid fa-user-plus"></i> Novo Cliente</h2>
+        <button class="modal-close" onclick="fecharModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <input type="hidden" id="cliId" />
+      <input type="hidden" id="fotoBase64" />
+
+      <div class="form-row">
+        <div class="form-group">
+          <label><i class="fa-solid fa-user"></i> Nome completo *</label>
+          <input type="text" id="cliNome" placeholder="Nome do cliente" />
+        </div>
+        <div class="form-group">
+          <label><i class="fa-solid fa-phone"></i> Telefone *</label>
+          <input type="tel" id="cliTelefone" placeholder="(13) 99999-9999" oninput="mascaraTel(this)" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-envelope"></i> E-mail</label>
+        <input type="email" id="cliEmail" placeholder="email@exemplo.com" />
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-note-sticky"></i> Observações</label>
+        <textarea id="cliObs" rows="3" placeholder="Observações sobre o cliente..."></textarea>
+      </div>
+
+      <!-- FOTO -->
+      <div class="form-group">
+        <label><i class="fa-solid fa-image"></i> Foto do Cliente</label>
+        <input type="file" id="inputFoto" accept="image/*" onchange="onFotoChange(this)"
+          style="padding:8px;background:var(--bg-dark);border:1px dashed var(--border);border-radius:8px;width:100%;cursor:pointer;box-sizing:border-box" />
+        <img id="previewFoto" src="" alt="preview"
+          style="display:none;margin-top:10px;width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)" />
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarCliente()">
+          <i class="fa-solid fa-floppy-disk"></i> Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SENHA -->
+  <div class="modal-overlay" id="modalSenha">
+    <div class="modal" style="max-width:360px;text-align:center">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-lock" style="color:var(--primary)"></i> Acesso Restrito</h2>
+        <button class="modal-close" onclick="fecharSenha()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="color:var(--text-muted);margin-bottom:20px;font-size:14px">
+        Digite a senha para visualizar os dados do cliente.
+      </p>
+      <div class="form-group">
+        <input type="password" id="inputSenhaDetalhe" placeholder="••••"
+          style="text-align:center;font-size:22px;letter-spacing:8px;padding:12px" />
+      </div>
+      <p id="senhaErro" style="color:var(--danger);font-size:13px;margin-top:8px;display:none">
+        <i class="fa-solid fa-circle-exclamation"></i> Senha incorreta!
+      </p>
+      <div class="modal-footer" style="margin-top:20px">
+        <button class="btn btn-outline" onclick="fecharSenha()">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmarSenha()">
+          <i class="fa-solid fa-unlock"></i> Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALHES -->
+  <div class="modal-overlay" id="modalDetalhes">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-user"></i> Detalhes do Cliente</h2>
+        <button class="modal-close" onclick="fecharDetalhes()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="detalhesConteudo"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharDetalhes()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EXCLUIR -->
+  <div class="modal-overlay" id="modalExcluir">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> Confirmar Exclusão</h2>
+        <button class="modal-close" onclick="fecharExcluir()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="color:var(--text-muted);margin-bottom:24px">Tem certeza? O cliente e seus dados serão removidos.</p>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharExcluir()">Cancelar</button>
+        <button class="btn btn-danger" onclick="confirmarExclusao()"><i class="fa-solid fa-trash"></i> Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    let idParaExcluir = null;
+    let _idDetalhePendente = null;
+    const SENHA_DETALHES = '1234';
+    const API_CLIENTES = 'http://localhost/Bot%20de%20Agendamento/php';
+    let clientesCache = [];
+
+    async function carregarClientesDoBanco() {
+      try {
+        const resposta = await fetch(`${API_CLIENTES}/pacientes`);
+        const dados = await resposta.json();
+        clientesCache = dados;
+        return clientesCache;
+      } catch (erro) {
+        console.error('Erro ao buscar clientes:', erro);
+        showToast('Erro de conexão ao carregar clientes.', 'error');
+        return [];
+      }
+    }
+
+
+    // ===== TOGGLE SIDEBAR MOBILE =====
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('open');
+    }
+
+    // Fecha sidebar ao clicar em qualquer link do menu (mobile)
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('open');
+      });
+    });
+
+    // ─── MÁSCARA TELEFONE ─────────────────────────────────────────
+    function mascaraTel(input) {
+      let v = input.value.replace(/\D/g, '');
+      if (v.length <= 10) v = v.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+      else v = v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+      input.value = v;
+    }
+
+    // ─── MÉTRICAS ─────────────────────────────────────────────────
+    function atualizarMetricas() {
+      const clientes = clientesCache;
+      const ags = getAgendamentos();
+      const agora = new Date();
+      const mes = agora.getMonth();
+      const ano = agora.getFullYear();
+
+      const nomesAgs = new Set(ags.map(a => a.cliente.toLowerCase().trim()));
+      const nomesCadastrados = new Set(clientes.map(c => c.nome.toLowerCase().trim()));
+      const totalUnicos = new Set([...nomesAgs, ...nomesCadastrados]);
+
+      document.getElementById('totalClientes').textContent = totalUnicos.size;
+      document.getElementById('clientesAtivos').textContent = nomesAgs.size;
+      document.getElementById('clientesMes').textContent = clientes.filter(c => {
+        if (!c.criado) return false;
+        const d = new Date(c.criado);
+        return d.getMonth() === mes && d.getFullYear() === ano;
+      }).length;
+    }
+
+    // ─── TABELA ───────────────────────────────────────────────────
+    async function renderTabela() {
+      const clientes = await carregarClientesDoBanco();
+      const ags = getAgendamentos();
+      const busca = document.getElementById('filtroBusca').value.toLowerCase();
+
+      const filtrados = clientes.filter(c =>
+        c.nome.toLowerCase().includes(busca) ||
+        (c.telefone && c.telefone.includes(busca)) ||
+        (c.email && c.email.toLowerCase().includes(busca))
+      );
+
+      document.getElementById('totalLabel').textContent = `${filtrados.length} cliente(s)`;
+
+      const tbody = document.getElementById('clientesBody');
+      if (!filtrados.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">
+        <i class="fa-solid fa-users" style="font-size:32px;display:block;margin-bottom:12px;opacity:0.4"></i>
+        Nenhum cliente encontrado
+      </td></tr>`;
+        atualizarMetricas();
+        return;
+      }
+
+      tbody.innerHTML = filtrados.map((c, i) => {
+        const qtdAg = ags.filter(a => a.cliente === c.nome).length;
+        const foto = c.foto
+          ? `<img src="${c.foto}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)">`
+          : `<div style="width:34px;height:34px;border-radius:50%;background:rgba(154,205,50,0.15);display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700;font-size:14px;flex-shrink:0">${c.nome.charAt(0).toUpperCase()}</div>`;
+
+        return `
+        <tr>
+          <td style="color:var(--text-muted)">${i + 1}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              ${foto}
+              <strong style="cursor:pointer;color:var(--primary);text-decoration:underline dotted"
+                onclick="pedirSenhaDetalhes(${c.id})">${c.nome}</strong>
+            </div>
+          </td>
+          <td><i class="fa-solid fa-phone" style="color:var(--primary);margin-right:6px"></i>${c.telefone || '—'}</td>
+          <td>${c.email || '—'}</td>
+          <td>
+            <span class="badge ${qtdAg > 0 ? 'badge-primary' : 'badge-warning'}">
+              ${qtdAg} agendamento(s)
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="pedirSenhaDetalhes(${c.id})" title="Detalhes">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="editarCliente(${c.id})" title="Editar">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="pedirExclusao(${c.id})" title="Excluir">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+
+      atualizarMetricas();
+    }
+
+    // ─── POPUP SENHA ──────────────────────────────────────────────
+    function pedirSenhaDetalhes(id) {
+      _idDetalhePendente = id;
+      document.getElementById('inputSenhaDetalhe').value = '';
+      document.getElementById('senhaErro').style.display = 'none';
+      document.getElementById('modalSenha').classList.add('open');
+      setTimeout(() => document.getElementById('inputSenhaDetalhe').focus(), 150);
+    }
+
+    function confirmarSenha() {
+      const digitada = document.getElementById('inputSenhaDetalhe').value;
+      if (digitada === SENHA_DETALHES) {
+        document.getElementById('modalSenha').classList.remove('open');
+        verDetalhes(_idDetalhePendente);
+      } else {
+        document.getElementById('senhaErro').style.display = 'block';
+        document.getElementById('inputSenhaDetalhe').value = '';
+        document.getElementById('inputSenhaDetalhe').focus();
+      }
+    }
+
+    function fecharSenha() {
+      document.getElementById('modalSenha').classList.remove('open');
+      _idDetalhePendente = null;
+    }
+
+    // ─── DETALHES ─────────────────────────────────────────────────
+    async function verDetalhes(id) {
+      try {
+        const resposta = await fetch(`${API_CLIENTES}/detalhes_cliente.php?id=${id}`);
+        const dados = await resposta.json();
+
+        if (!dados.sucesso || !dados.cliente) {
+          showToast('Cliente não encontrado no banco.', 'error');
+          return;
+        }
+
+        const c = dados.cliente;
+        const ags = getAgendamentos().filter(a => a.cliente === c.nome);
+
+        const badges = {
+          pendente: '<span class="badge badge-warning">Pendente</span>',
+          confirmado: '<span class="badge badge-success">Confirmado</span>',
+          cancelado: '<span class="badge badge-danger">Cancelado</span>',
+          concluido: '<span class="badge badge-primary">Concluído</span>',
+        };
+
+        const fotoHtml = c.foto
+          ? `<img src="${c.foto}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)">`
+          : `<div style="width:64px;height:64px;border-radius:50%;background:rgba(154,205,50,0.15);display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700;font-size:26px">${c.nome.charAt(0).toUpperCase()}</div>`;
+
+        document.getElementById('detalhesConteudo').innerHTML = `
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:20px;background:var(--bg-dark);border-radius:12px">
+          ${fotoHtml}
+          <div>
+            <h3 style="font-size:18px">${c.nome}</h3>
+            <p style="color:var(--text-muted);font-size:13px">${c.email || 'Sem e-mail'}</p>
+            <p style="color:var(--text-muted);font-size:13px">${c.telefone || 'Sem telefone'}</p>
+          </div>
+        </div>
+        ${c.obs ? `<p style="color:var(--text-muted);font-size:13px;margin-bottom:20px;padding:12px;background:var(--bg-dark);border-radius:8px">${c.obs}</p>` : ''}
+        <div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--primary)">
+          <i class="fa-solid fa-calendar-days"></i> Histórico de Agendamentos (${ags.length})
+        </div>
+        ${ags.length ? `
+          <div style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto">
+            ${ags.sort((a, b) => b.data.localeCompare(a.data)).map(a => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg-dark);border-radius:8px;border-left:3px solid var(--primary)">
+                <div>
+                  <strong style="font-size:13px">${a.servico}</strong>
+                  <span style="color:var(--text-muted);font-size:12px;display:block">${a.data.split('-').reverse().join('/')} às ${a.hora}</span>
+                </div>
+                ${badges[a.status] || ''}
+              </div>`).join('')}
+          </div>` : `<p style="color:var(--text-muted);text-align:center;padding:20px">Nenhum agendamento</p>`}
+      `;
+
+        document.getElementById('modalDetalhes').classList.add('open');
+      } catch (erro) {
+        console.error('Erro ao buscar detalhes:', erro);
+        showToast('Erro ao carregar detalhes do cliente.', 'error');
+      }
+    }
+
+    // ─── MODAL CADASTRO ───────────────────────────────────────────
+    function abrirModal() {
+      document.getElementById('cliId').value = '';
+      document.getElementById('cliNome').value = '';
+      document.getElementById('cliTelefone').value = '';
+      document.getElementById('cliEmail').value = '';
+      document.getElementById('cliObs').value = '';
+      document.getElementById('fotoBase64').value = '';
+      document.getElementById('inputFoto').value = '';
+      document.getElementById('previewFoto').style.display = 'none';
+      document.getElementById('previewFoto').src = '';
+      document.getElementById('modalTitulo').innerHTML = '<i class="fa-solid fa-user-plus"></i> Novo Cliente';
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function editarCliente(id) {
+      showToast('Edição ainda não foi integrada ao banco de dados.', 'warning');
+    }
+
+    function onFotoChange(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('previewFoto').src = e.target.result;
+        document.getElementById('previewFoto').style.display = 'block';
+        document.getElementById('fotoBase64').value = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function salvarCliente() {
+      const nome = document.getElementById('cliNome').value.trim();
+      const telefone = document.getElementById('cliTelefone').value.trim();
+      const email = document.getElementById('cliEmail').value.trim();
+      const obs = document.getElementById('cliObs').value.trim();
+      const foto = document.getElementById('fotoBase64').value;
+
+      if (!nome || !telefone) {
+        showToast('Nome e telefone são obrigatórios!', 'error');
+        return;
+      }
+
+      try {
+        const resposta = await fetch(`${API_CLIENTES}/salvar_cliente.php`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ nome, telefone, email, obs, foto })
+        });
+
+        const dados = await resposta.json();
+
+        if (!dados.sucesso) {
+          showToast(dados.erro || 'Erro ao salvar cliente.', 'error');
+          return;
+        }
+
+        showToast('Cliente cadastrado com sucesso!');
+        fecharModal();
+        await renderTabela();
+      } catch (erro) {
+        console.error('Erro ao salvar cliente:', erro);
+        showToast('Erro de conexão ao salvar cliente.', 'error');
+      }
+    }
+
+    // ─── EXCLUSÃO ─────────────────────────────────────────────────
+    function pedirExclusao(id) {
+      idParaExcluir = id;
+      showToast('Exclusão ainda não foi integrada ao banco de dados.', 'warning');
+    }
+
+    function confirmarExclusao() {
+      showToast('Exclusão ainda não foi integrada ao banco de dados.', 'warning');
+    }
+
+    // ─── FECHAR MODAIS ────────────────────────────────────────────
+    function fecharDetalhes() { document.getElementById('modalDetalhes').classList.remove('open'); }
+    function fecharModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+    function fecharExcluir() { document.getElementById('modalExcluir').classList.remove('open'); idParaExcluir = null; }
+    function logout() { window.location.href = '../index.html'; }
+
+    // Enter confirma senha / Escape fecha modais
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.getElementById('modalSenha').classList.contains('open')) {
+        confirmarSenha();
+      }
+      if (e.key === 'Escape') {
+        fecharSenha();
+        fecharDetalhes();
+        fecharModal();
+        fecharExcluir();
+      }
+    });
+
+    renderTabela();
+  </script>
